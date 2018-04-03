@@ -20,22 +20,30 @@ def hi_c(x, y, z):
     if dtype == 'float16':
         bytes = b64decode(tile_data['dense'])
         ints = list([i[0] for i in iter_unpack('<H', bytes)])
-        # TODO: Check endian? Check sign?
         # TODO: Return floats
         # max_val = tile_data['max_value']
         # min_val = tile_data['min_value']
         # span = max_val - min_val
         # floats = [i[0] * span + min_val for i in ints]
         # return [floats[i:i + 256] for i in range(0, len(floats), 256)]
-        return [[j/256 for j in ints[i:i + 256]] for i in range(0, len(ints), 256)]
+        triangle = [[j/256 for j in ints[i:i + 256]] for i in range(0, len(ints), 256)]
     else:
         raise RuntimeError('Unsupported type: ' + dtype)
+    # Mirror:
+    for x in range(256):
+        for y in range(1,x):
+            triangle[y][x] = triangle[x][y]
+    # Increase brightness:
+    for x in range(256):
+        for y in range(256):
+            triangle[x][y] = min(4 * triangle[x][y], 255)
+    return triangle
 
 def conformal(coord, input_len, output_len):
     # In the range 0 to 1:
     x = pi / 2 * coord[0] / output_len
     y = coord[1] / output_len
-    real = x - 3
+    real = x - 4.5
     imag = y * pi / 2
     mapped = exp(complex(real, imag))
     return (
@@ -45,8 +53,8 @@ def conformal(coord, input_len, output_len):
 
 input_data = hi_c(0,0,0)
 
-output_width = 400
-output_height = 800
+output_width = 300
+output_height = 900
 output_data = geometric_transform(
     input=input_data,
     mapping=conformal,
